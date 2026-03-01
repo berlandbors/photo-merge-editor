@@ -1143,6 +1143,9 @@ document.addEventListener('mouseup', () => {
     resizeHandle.classList.remove('dragging');
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
+    try {
+      localStorage.setItem('pme_sidebarW', sidebar.style.width);
+    } catch(_) {}
   }
 });
 
@@ -1435,6 +1438,7 @@ document.getElementById('uiScaleSlider').addEventListener('input', function() {
   uiScale = parseFloat(this.value) / 100;
   document.documentElement.style.setProperty('--ui-scale', uiScale);
   document.getElementById('uiScaleVal').textContent = this.value + '%';
+  try { localStorage.setItem('pme_uiScale', uiScale); } catch(_) {}
 });
 
 /* ============================================================
@@ -1495,7 +1499,249 @@ document.addEventListener('keydown', e => {
     case 'S':
       if (e.ctrlKey || e.metaKey) { e.preventDefault(); downloadResult(); }
       break;
+    case 'Delete':
+    case 'Backspace':
+      layers[activeLayer].image = null;
+      originalImages[activeLayer] = null;
+      updateThumbnail(activeLayer);
+      render();
+      showHint(`Layer ${activeLayer} cleared`);
+      break;
+    case 'F11':
+      e.preventDefault();
+      toggleCanvasOnly();
+      break;
+    case 'Escape':
+      if (document.body.classList.contains('canvas-only')) {
+        toggleCanvasOnly();
+      } else {
+        closeSidebar();
+      }
+      break;
   }
+});
+
+/* ============================================================
+   CANVAS-ONLY MODE
+   ============================================================ */
+
+function toggleCanvasOnly() {
+  document.body.classList.toggle('canvas-only');
+  const isCanvasOnly = document.body.classList.contains('canvas-only');
+  if (isCanvasOnly) {
+    closeSidebar();
+    showHint('Canvas-only mode — press F11 or ESC to exit');
+  }
+  setTimeout(fitCanvas, 50);
+}
+
+/* ============================================================
+   SIDEBAR TOGGLE (responsive)
+   ============================================================ */
+
+const sidebarEl    = document.getElementById('sidebar');
+const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+const sidebarToggleBtn = document.getElementById('sidebarToggle');
+const sidebarCloseBtn  = document.getElementById('sidebarClose');
+
+/** Detect touch/mobile viewport */
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function openSidebar() {
+  if (!isMobileViewport()) return;
+  sidebarEl.classList.add('open');
+  sidebarOverlayEl.style.display = 'block';
+  // Force reflow for transition
+  sidebarOverlayEl.getBoundingClientRect();
+  sidebarOverlayEl.classList.add('show');
+}
+
+function closeSidebar() {
+  sidebarEl.classList.remove('open');
+  sidebarOverlayEl.classList.remove('show');
+  setTimeout(() => {
+    if (!sidebarEl.classList.contains('open')) {
+      sidebarOverlayEl.style.display = 'none';
+    }
+  }, 260);
+}
+
+function toggleSidebar() {
+  if (sidebarEl.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+
+if (sidebarToggleBtn) {
+  sidebarToggleBtn.addEventListener('click', toggleSidebar);
+}
+
+if (sidebarCloseBtn) {
+  sidebarCloseBtn.addEventListener('click', closeSidebar);
+}
+
+if (sidebarOverlayEl) {
+  sidebarOverlayEl.addEventListener('click', closeSidebar);
+}
+
+/* Close sidebar on desktop resize (in case it was open on mobile) */
+function onResize() {
+  if (!isMobileViewport()) {
+    sidebarEl.classList.remove('open');
+    sidebarOverlayEl.classList.remove('show');
+    sidebarOverlayEl.style.display = 'none';
+  }
+  fitCanvas();
+}
+
+/** Debounced resize handler */
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(onResize, 120);
+});
+
+/* ============================================================
+   SWIPE GESTURE TO OPEN SIDEBAR (mobile)
+   ============================================================ */
+
+let swipeTouchStartX = 0;
+let swipeTouchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  swipeTouchStartX = e.touches[0].clientX;
+  swipeTouchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!isMobileViewport()) return;
+  const dx = e.changedTouches[0].clientX - swipeTouchStartX;
+  const dy = e.changedTouches[0].clientY - swipeTouchStartY;
+  // Right swipe from left edge → open sidebar
+  if (swipeTouchStartX < 24 && dx > 60 && Math.abs(dy) < 80) {
+    openSidebar();
+  }
+  // Left swipe when sidebar is open → close sidebar
+  if (sidebarEl.classList.contains('open') && dx < -60 && Math.abs(dy) < 80) {
+    closeSidebar();
+  }
+}, { passive: true });
+
+/* ============================================================
+   PINCH-TO-ZOOM ON CANVAS
+   ============================================================ */
+
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+
+canvasViewport.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    pinchStartDist = Math.hypot(dx, dy);
+    pinchStartZoom = canvasZoom;
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvasViewport.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (pinchStartDist > 0) {
+      setZoom(pinchStartZoom * (dist / pinchStartDist));
+    }
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvasViewport.addEventListener('touchend', e => {
+  if (e.touches.length < 2) {
+    pinchStartDist = 0;
+  }
+}, { passive: true });
+
+/* ============================================================
+   DRAG & DROP ON CANVAS (viewport)
+   ============================================================ */
+
+canvasViewport.addEventListener('dragover', e => {
+  e.preventDefault();
+  canvasViewport.classList.add('drag-over-viewport');
+});
+
+canvasViewport.addEventListener('dragleave', e => {
+  if (!canvasViewport.contains(e.relatedTarget)) {
+    canvasViewport.classList.remove('drag-over-viewport');
+  }
+});
+
+canvasViewport.addEventListener('drop', e => {
+  e.preventDefault();
+  canvasViewport.classList.remove('drag-over-viewport');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    loadImageFile(file, activeLayer);
+    showHint(`Image loaded into Layer ${activeLayer}`);
+  }
+});
+
+/* ============================================================
+   LOCALSTORAGE – UI STATE PERSISTENCE
+   ============================================================ */
+
+function saveUiState() {
+  try {
+    const activeTab = document.querySelector('.tab-btn.active');
+    localStorage.setItem('pme_uiScale',   uiScale);
+    localStorage.setItem('pme_sidebarW',  sidebarEl.style.width || '');
+    localStorage.setItem('pme_activeTab', activeTab ? activeTab.dataset.tab : 'basic');
+  } catch(_) {}
+}
+
+function loadUiState() {
+  try {
+    const scale = parseFloat(localStorage.getItem('pme_uiScale'));
+    if (scale && scale >= 0.5 && scale <= 2) {
+      uiScale = scale;
+      document.documentElement.style.setProperty('--ui-scale', uiScale);
+      const slider = document.getElementById('uiScaleSlider');
+      const label  = document.getElementById('uiScaleVal');
+      if (slider) slider.value = Math.round(scale * 100);
+      if (label)  label.textContent = Math.round(scale * 100) + '%';
+    }
+
+    const sidebarW = localStorage.getItem('pme_sidebarW');
+    if (sidebarW && !isMobileViewport()) {
+      const w = parseInt(sidebarW, 10);
+      if (w >= 220 && w <= 520) {
+        sidebarEl.style.width = sidebarW;
+        document.documentElement.style.setProperty('--sidebar-width', sidebarW);
+      }
+    }
+
+    const activeTab = localStorage.getItem('pme_activeTab');
+    if (activeTab) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${activeTab}"]`);
+      if (btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = document.getElementById(`tab-${activeTab}`);
+        if (panel) panel.classList.add('active');
+      }
+    }
+  } catch(_) {}
+}
+
+/* Save state when tabs change */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', saveUiState);
 });
 
 /* ============================================================
@@ -1503,6 +1749,8 @@ document.addEventListener('keydown', e => {
    ============================================================ */
 
 (function init() {
+  // Restore UI state from localStorage
+  loadUiState();
   // Initial render (blank canvas)
   render();
   // Fit to viewport — small delay to let CSS layout complete before measuring dimensions
