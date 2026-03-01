@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1e1e1e" />
   <title>Photo Merge Editor</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -12,12 +15,16 @@
   <input type="file" id="fileInput2" accept="image/*" style="display:none" data-layer="2" />
   <input type="file" id="fileInput3" accept="image/*" style="display:none" data-layer="3" />
 
+  <!-- Sidebar overlay (mobile backdrop) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="app-layout">
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" id="sidebar">
 
       <!-- Sidebar header -->
       <div class="sidebar-header">
+        <button class="btn-sidebar-close" id="sidebarClose" title="Close sidebar">✕</button>
         <span class="app-title">📸 Photo Merge</span>
         <div class="ui-scale-wrap">
           <label for="uiScaleSlider" title="UI Scale">UI</label>
@@ -238,6 +245,8 @@
 
       <!-- Toolbar -->
       <div class="toolbar">
+        <button class="btn-tool btn-sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">☰</button>
+        <div class="toolbar-sep toolbar-sep-toggle"></div>
         <div class="toolbar-group">
           <button class="btn-tool" data-layer-upload="1" title="Upload to Layer 1">L1 ↑</button>
           <button class="btn-tool" data-layer-upload="2" title="Upload to Layer 2">L2 ↑</button>
@@ -273,6 +282,9 @@
       </div>
     </main>
   </div>
+
+  <!-- Canvas-only mode hint -->
+  <div class="canvas-only-hint" id="canvasOnlyHint">Press F11 or ESC to exit canvas mode</div>
 
   <!-- Toast / hint -->
   <div class="hint-toast" id="hintToast"></div>

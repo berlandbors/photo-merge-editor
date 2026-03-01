@@ -7,7 +7,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --sidebar-width: 300px;
+  --sidebar-width: clamp(250px, 25vw, 320px);
   --ui-scale: 1;
   --canvas-zoom: 1;
 
@@ -35,13 +35,23 @@
   --trans-fast: 0.15s ease;
   --trans:      0.25s ease;
   --trans-slow: 0.35s ease;
+
+  --toolbar-height: clamp(40px, 7vh, 52px);
+  --spacing-unit: clamp(6px, 1vw, 12px);
+  --font-size-base: clamp(13px, 1.5vw, 15px);
+
+  /* Safe area insets (iPhone notch/home indicator) */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
 html, body {
   height: 100%;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: calc(13px * var(--ui-scale));
+  font-size: calc(var(--font-size-base) * var(--ui-scale));
   background: var(--bg-app);
   color: var(--text);
 }
@@ -57,8 +67,26 @@ html, body {
    ============================================================ */
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+}
+
+/* ============================================================
+   SIDEBAR OVERLAY (mobile backdrop)
+   ============================================================ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--trans);
+}
+.sidebar-overlay.show {
+  opacity: 1;
 }
 
 /* ============================================================
@@ -74,7 +102,8 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width var(--trans);
+  transition: width var(--trans), transform var(--trans);
+  padding-top: var(--safe-area-top);
 }
 
 .sidebar-header {
@@ -120,6 +149,21 @@ html, body {
   min-width: 34px;
   text-align: right;
 }
+
+/* Close button inside sidebar header (mobile only) */
+.btn-sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1em;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  transition: color var(--trans-fast), background var(--trans-fast);
+  flex-shrink: 0;
+}
+.btn-sidebar-close:hover { color: var(--danger); background: rgba(209,52,56,0.12); }
 
 /* ---- sidebar scrollable body ---- */
 .layers-section {
@@ -188,6 +232,11 @@ html, body {
   font-size: 0.75em;
   color: var(--text-dim);
   transition: color var(--trans-fast), background var(--trans-fast);
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-icon:hover { color: var(--danger); background: rgba(209,52,56,0.12); }
 
@@ -244,6 +293,7 @@ html, body {
   cursor: pointer;
   text-align: center;
   transition: background var(--trans-fast), border-color var(--trans-fast);
+  min-height: 36px;
 }
 .btn-choose:hover {
   background: var(--accent);
@@ -268,7 +318,9 @@ html, body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow-x: auto;
+  scrollbar-width: none;
 }
+.tab-bar::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   flex: 1;
@@ -283,6 +335,7 @@ html, body {
   white-space: nowrap;
   transition: color var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
   min-width: 0;
+  min-height: 40px;
 }
 
 .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
@@ -422,6 +475,7 @@ select:focus { border-color: var(--accent); }
 .btn-action {
   flex: 1 1 auto;
   min-width: 50px;
+  min-height: 36px;
   padding: 6px 8px;
   background: var(--bg-input);
   border: 1px solid var(--border-light);
@@ -465,6 +519,7 @@ select:focus { border-color: var(--accent); }
   font-size: 0.74em;
   cursor: pointer;
   transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast);
+  min-height: 30px;
 }
 .btn-preset:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
@@ -473,6 +528,7 @@ select:focus { border-color: var(--accent); }
 .btn-color {
   flex: 1 1 auto;
   min-width: 44px;
+  min-height: 36px;
   padding: 5px 4px;
   border-radius: var(--radius);
   border: 2px solid transparent;
@@ -520,6 +576,7 @@ select:focus { border-color: var(--accent); }
   overflow: hidden;
   background: var(--bg-app);
   min-width: 0;
+  padding-bottom: var(--safe-area-bottom);
 }
 
 /* ---- Toolbar ---- */
@@ -532,7 +589,12 @@ select:focus { border-color: var(--accent); }
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow-x: auto;
+  scrollbar-width: none;
+  min-height: var(--toolbar-height);
+  padding-left: max(12px, var(--safe-area-left));
+  padding-right: max(12px, var(--safe-area-right));
 }
+.toolbar::-webkit-scrollbar { display: none; }
 
 .toolbar-group {
   display: flex;
@@ -548,6 +610,13 @@ select:focus { border-color: var(--accent); }
   flex-shrink: 0;
 }
 
+/* Sidebar toggle button in toolbar */
+.btn-sidebar-toggle {
+  flex-shrink: 0;
+  font-size: 1.1em;
+  padding: 5px 10px;
+}
+
 .btn-tool {
   padding: 5px 12px;
   background: var(--bg-card);
@@ -558,6 +627,7 @@ select:focus { border-color: var(--accent); }
   cursor: pointer;
   white-space: nowrap;
   transition: background var(--trans-fast), border-color var(--trans-fast), transform var(--trans-fast);
+  min-height: 32px;
 }
 .btn-tool:hover  { background: #3a3a3a; border-color: #555; }
 .btn-tool:active { transform: scale(0.96); }
@@ -601,6 +671,11 @@ select:focus { border-color: var(--accent); }
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   position: relative;
+  transition: box-shadow var(--trans-fast);
+}
+
+.canvas-viewport.drag-over-viewport {
+  box-shadow: inset 0 0 0 3px var(--accent);
 }
 
 .canvas-container {
@@ -618,6 +693,7 @@ select:focus { border-color: var(--accent); }
   box-shadow: 0 4px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06);
   border-radius: 2px;
   cursor: crosshair;
+  touch-action: none;
 }
 
 #mainCanvas.dragging { cursor: grabbing; }
@@ -639,6 +715,8 @@ select:focus { border-color: var(--accent); }
   font-size: 0.72em;
   color: var(--text-muted);
   flex-shrink: 0;
+  padding-left: max(14px, var(--safe-area-left));
+  padding-right: max(14px, var(--safe-area-right));
 }
 .status-right { white-space: nowrap; }
 
@@ -647,7 +725,7 @@ select:focus { border-color: var(--accent); }
    ============================================================ */
 .hint-toast {
   position: fixed;
-  bottom: 36px;
+  bottom: max(36px, calc(20px + var(--safe-area-bottom)));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: rgba(40,40,40,0.95);
@@ -662,6 +740,7 @@ select:focus { border-color: var(--accent); }
   transition: opacity var(--trans), transform var(--trans);
   white-space: nowrap;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .hint-toast.show {
   opacity: 1;
@@ -681,6 +760,7 @@ select:focus { border-color: var(--accent); }
   justify-content: center;
   z-index: 9998;
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .spinner {
@@ -703,26 +783,246 @@ select:focus { border-color: var(--accent); }
 }
 
 /* ============================================================
-   RESPONSIVE / MOBILE
+   CANVAS-ONLY MODE (F11)
    ============================================================ */
-@media (max-width: 768px) {
-  :root { --sidebar-width: 260px; }
-
-  .toolbar { gap: 3px; padding: 5px 8px; }
-  .btn-tool { padding: 5px 8px; font-size: 0.75em; }
-
-  .canvas-viewport { align-items: flex-start; justify-content: flex-start; }
+.canvas-only .sidebar,
+.canvas-only .resize-handle,
+.canvas-only .toolbar,
+.canvas-only .status-bar {
+  display: none !important;
 }
 
-@media (max-width: 540px) {
-  .app-layout { flex-direction: column; }
+.canvas-only .app-layout {
+  height: 100dvh;
+}
+
+.canvas-only .canvas-viewport {
+  height: 100dvh;
+}
+
+/* Floating mini-controls in canvas-only mode */
+.canvas-only-hint {
+  position: fixed;
+  bottom: max(16px, var(--safe-area-bottom));
+  right: max(16px, var(--safe-area-right));
+  background: rgba(30,30,30,0.85);
+  color: var(--text-dim);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.72em;
+  z-index: 1000;
+  pointer-events: none;
+  display: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.canvas-only .canvas-only-hint {
+  display: block;
+}
+
+/* ============================================================
+   RESPONSIVE / MEDIA QUERIES
+   ============================================================ */
+
+/* ------ Large Desktop (≥ 1440px) ------ */
+@media (min-width: 1440px) {
+  :root { --sidebar-width: clamp(300px, 22vw, 400px); }
+}
+
+/* ------ Desktop (≥ 1025px) ------ */
+@media (min-width: 1025px) {
+  .btn-sidebar-toggle,
+  .toolbar-sep-toggle { display: none; }
+}
+
+/* ------ Tablet (769px – 1024px) ------ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root { --sidebar-width: 250px; }
+  .btn-sidebar-toggle,
+  .toolbar-sep-toggle { display: none; }
+}
+
+/* ------ Mobile Large (≤ 768px) ------ */
+@media (max-width: 768px) {
   .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: clamp(260px, 85vw, 360px);
+    min-width: 0;
+    max-width: 360px;
+    transform: translateX(-100%);
+    z-index: 200;
+    border-right: 1px solid var(--border);
+    padding-top: var(--safe-area-top);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+    will-change: transform;
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+  }
+
+  .btn-sidebar-close {
+    display: inline-flex;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+
+  .toolbar {
+    padding: 5px 8px;
+    gap: 3px;
+  }
+
+  .btn-tool {
+    padding: 5px 8px;
+    font-size: 0.75em;
+  }
+
+  .canvas-viewport {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  /* Compact layer cards on mobile */
+  .thumb-wrap {
+    width: 60px;
+    height: 46px;
+  }
+}
+
+/* ------ Mobile Small (≤ 480px) ------ */
+@media (max-width: 480px) {
+  :root {
+    --font-size-base: 13px;
+  }
+
+  .sidebar-header {
+    padding: 8px 10px;
+  }
+
+  .ui-scale-wrap {
+    display: none; /* hide UI scale on very small screens */
+  }
+
+  .status-right {
+    display: none; /* hide status right on very small screens */
+  }
+
+  .btn-tool.btn-download span.tool-text { display: none; }
+}
+
+/* ------ Touch devices ------ */
+@media (hover: none) and (pointer: coarse) {
+  :root {
+    --slider-thumb-size: 36px;
+  }
+
+  .btn-action,
+  .btn-choose,
+  .btn-tool,
+  .btn-color,
+  .tab-btn {
+    min-height: 44px;
+  }
+
+  .btn-preset {
+    min-height: 38px;
+    padding: 6px 14px;
+  }
+
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Disable hover effects on touch */
+  .btn-tool:hover {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+  }
+
+  .btn-action:hover {
+    background: var(--bg-input);
+    border-color: var(--border-light);
+  }
+
+  .layer-card:hover {
+    border-color: var(--border);
+  }
+
+  /* No :hover on tab-btn for touch */
+  .tab-btn:hover {
+    color: var(--text-dim);
+    background: none;
+  }
+
+  input[type=range] {
+    height: 6px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    border-width: 4px;
+  }
+}
+
+/* ------ Landscape (short viewport) ------ */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root {
+    --toolbar-height: 40px;
+  }
+
+  .layers-section {
+    padding: 6px 8px 2px;
+  }
+
+  .layer-card {
+    margin-bottom: 4px;
+  }
+
+  .thumb-wrap {
+    width: 56px;
+    height: 42px;
+  }
+
+  .control-group {
+    margin-bottom: 6px;
+  }
+
+  .tab-btn {
+    padding: 6px 4px;
+    min-height: 36px;
+  }
+}
+
+/* ------ Portrait on mobile (sidebar as bottom drawer) ------ */
+@media (orientation: portrait) and (max-width: 600px) {
+  .sidebar {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100% !important;
     max-width: 100%;
-    height: 50vh;
+    height: 65dvh;
+    transform: translateY(100%);
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
-  .resize-handle { display: none; }
-  .workspace { height: 50vh; }
+
+  .sidebar.open {
+    transform: translateY(0);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.6);
+    will-change: transform;
+  }
 }
+
