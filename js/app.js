@@ -7,6 +7,16 @@
 'use strict';
 
 /* ============================================================
+   CONSTANTS
+   ============================================================ */
+
+/** Converts sensitivity slider (1-100) to colour-distance threshold used in BG removal */
+const SENSITIVITY_TO_THRESHOLD = 2.5;
+
+/** Factor applied to edge gradient magnitude when building contrast maps */
+const EDGE_THRESHOLD_FACTOR = 0.4;
+
+/* ============================================================
    STATE
    ============================================================ */
 
@@ -67,7 +77,7 @@ function render() {
     if (!layer.image) return;
 
     // Build filtered/effected image on a temp canvas
-    const filtered = applyFilters(layer, id);
+    const filtered = applyFilters(layer);
     const effected  = applyEffects(filtered, layer);
 
     const img = effected;
@@ -439,7 +449,7 @@ function smartRemoveBackground(layerId, method) {
   setTimeout(() => {
     try {
       const sensitivity = parseInt(document.getElementById('sensitivity-slider').value, 10);
-      const threshold   = sensitivity * 2.5; // convert 1-100 → colour-distance threshold
+      const threshold   = sensitivity * SENSITIVITY_TO_THRESHOLD; // convert 1-100 → colour-distance threshold
 
       // Work on a temporary canvas at image's natural size
       const src    = layer.image;
@@ -474,13 +484,13 @@ function smartRemoveBackground(layerId, method) {
 /**
  * GrabCut-inspired removal:
  * Sample corner 20×20 patches for background colour;
- * preserve centre 85% region, remove pixels matching background.
+ * preserve centre 84% region (half-extent 42% per axis), remove pixels matching background.
  */
 function grabCutRemove(imgData, W, H, threshold) {
   const data      = imgData.data;
   const bgSamples = sampleCornerColors(data, W, H, 20);
   const cx = W / 2, cy = H / 2;
-  const safeW = W * 0.42, safeH = H * 0.42; // half-extents of safe zone
+  const safeW = W * 0.42, safeH = H * 0.42; // half-extents → 84% safe zone (0.42*2 per axis)
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -548,7 +558,7 @@ function contrastRemove(imgData, W, H, threshold) {
       const iD   = ((y+1)*W+x)*4;
       const dx   = lum(data[iR],data[iR+1],data[iR+2]) - lum(data[i],data[i+1],data[i+2]);
       const dy   = lum(data[iD],data[iD+1],data[iD+2]) - lum(data[i],data[i+1],data[i+2]);
-      edges[y*W+x] = Math.sqrt(dx*dx + dy*dy) > (threshold * 0.4) ? 1 : 0;
+      edges[y*W+x] = Math.sqrt(dx*dx + dy*dy) > (threshold * EDGE_THRESHOLD_FACTOR) ? 1 : 0;
     }
   }
 
@@ -705,7 +715,7 @@ function removeColorFromBackground(layerId, colorName) {
     const imgData = tc.getImageData(0, 0, W, H);
     const data    = imgData.data;
     const sensitivity = parseInt(document.getElementById('sensitivity-slider').value, 10);
-    const threshold   = sensitivity * 2.5;
+    const threshold   = sensitivity * SENSITIVITY_TO_THRESHOLD;
 
     let targetR=255, targetG=255, targetB=255;
     if (colorName === 'auto') {
@@ -1495,7 +1505,7 @@ document.addEventListener('keydown', e => {
 (function init() {
   // Initial render (blank canvas)
   render();
-  // Fit to viewport
+  // Fit to viewport — small delay to let CSS layout complete before measuring dimensions
   setTimeout(fitCanvas, 100);
   // Set active layer card highlight
   setActiveLayer(1);
