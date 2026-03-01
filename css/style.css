@@ -28,7 +28,7 @@
   --text-dim:  #999999;
   --text-muted:#666666;
 
-  --thumb-size: 24px;
+  --slider-thumb-size: 24px;
   --radius:     6px;
   --radius-lg:  8px;
 
@@ -359,8 +359,8 @@ input[type=range]:hover { background: #555; }
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: var(--thumb-size);
-  height: var(--thumb-size);
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
   border-radius: 50%;
   background: var(--accent);
   cursor: grab;
@@ -371,8 +371,8 @@ input[type=range]::-webkit-slider-thumb {
 input[type=range]::-webkit-slider-thumb:hover   { background: var(--accent-hover); transform: scale(1.15); }
 input[type=range]::-webkit-slider-thumb:active  { cursor: grabbing; transform: scale(1.05); }
 input[type=range]::-moz-range-thumb {
-  width: var(--thumb-size);
-  height: var(--thumb-size);
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid var(--bg-panel);

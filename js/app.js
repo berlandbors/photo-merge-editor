@@ -135,7 +135,7 @@ function applyVignetteOverlay(layer, iw, ih) {
  * Stage 2: saturation / hue via pixel-level HSL conversion.
  * Stage 3: temperature by shifting R / B channels.
  *
- * @param {object} layer  – layer data object
+ * @param {object} layer  - layer data object (from the `layers` map)
  * @returns {HTMLCanvasElement}
  */
 function applyFilters(layer) {
@@ -156,10 +156,8 @@ function applyFilters(layer) {
   const tc = tw.getContext('2d');
 
   // ---- Stage 1: brightness / contrast via CSS filter ----
-  const bNorm = layer.brightness / 100; // -1 … +1
-  const cNorm = layer.contrast   / 100; // -1 … +1
   const brightnessPct = 100 + layer.brightness;        // 0 … 200
-  const contrastPct   = 100 + layer.contrast * 1.5;    // more perceptible
+  const contrastPct   = 100 + layer.contrast * 1.5;    // 1.5x amplifier makes contrast steps more perceptible
 
   tc.filter = `brightness(${brightnessPct}%) contrast(${Math.max(0, contrastPct)}%)`;
   tc.drawImage(src, 0, 0, tw.width, tw.height);
@@ -291,7 +289,7 @@ function sCurve(v, s) {
 
 /**
  * Unsharp-mask algorithm:
- *   sharpened = original + amount * (original – blurred)
+ *   sharpened = original + amount * (original - blurred)
  *
  * @param {ImageData} imageData
  * @param {number}    amount   0..1+
