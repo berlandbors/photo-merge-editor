@@ -101,10 +101,16 @@ html, body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   transition: width var(--trans), transform var(--trans);
   padding-top: var(--safe-area-top);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
 }
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: #555; }
 
 .sidebar-header {
   display: flex;
@@ -115,6 +121,9 @@ html, body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .app-title {
@@ -345,7 +354,7 @@ html, body {
   display: none;
   flex-direction: column;
   padding: 10px 10px 14px;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
   flex: 1;
   min-height: 0;
