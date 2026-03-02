@@ -702,6 +702,11 @@ function removeColorFromBackground(layerId, colorName) {
   const layer = layers[layerId];
   if (!layer.image) { showHint('No image on this layer'); return; }
 
+  // Save original on first removal (before any modification)
+  if (!originalImages[layerId]) {
+    originalImages[layerId] = layer.image;
+  }
+
   showSpinner('Removing colour…');
   setTimeout(() => {
     const src  = layer.image;
@@ -714,13 +719,12 @@ function removeColorFromBackground(layerId, colorName) {
     const W       = tw.width, H = tw.height;
     const imgData = tc.getImageData(0, 0, W, H);
     const data    = imgData.data;
-    const sensitivity = parseInt(document.getElementById('sensitivity-slider').value, 10);
-    const threshold   = sensitivity * SENSITIVITY_TO_THRESHOLD;
+    const threshold = parseInt(document.getElementById('sensitivity-slider').value, 10);
 
     let targetR=255, targetG=255, targetB=255;
     if (colorName === 'auto') {
-      // Use average of corner samples
-      const samples = sampleCornerColors(data, W, H, 20);
+      // Sample 5×5 pixels from each corner
+      const samples = sampleCornerColors(data, W, H, 5);
       [targetR, targetG, targetB] = samples
         .reduce((a,[r,g,b])=>[a[0]+r,a[1]+g,a[2]+b],[0,0,0])
         .map(v=>v/samples.length);
@@ -734,9 +738,18 @@ function removeColorFromBackground(layerId, colorName) {
       [targetR, targetG, targetB] = presets[colorName] || [255,255,255];
     }
 
+    const fullTransparencyThreshold  = threshold * 4;
+    const gradualTransparencyThreshold  = threshold * 6;
+
     for (let i = 0; i < data.length; i += 4) {
-      if (colorDistance(data[i],data[i+1],data[i+2], targetR,targetG,targetB) < threshold) {
+      const diff = colorDistance(data[i],data[i+1],data[i+2], targetR,targetG,targetB);
+      if (diff < fullTransparencyThreshold) {
+        // Full transparency
         data[i+3] = 0;
+      } else if (diff < gradualTransparencyThreshold) {
+        // Gradual transition
+        const alphaBlendFactor = (diff - fullTransparencyThreshold) / (gradualTransparencyThreshold - fullTransparencyThreshold);
+        data[i+3] = Math.round(data[i+3] * alphaBlendFactor);
       }
     }
 
@@ -1408,7 +1421,7 @@ document.getElementById('btnContrast').addEventListener('click', () =>
 document.getElementById('btnFlood').addEventListener('click', () =>
   smartRemoveBackground(activeLayer, 'flood'));
 
-document.querySelectorAll('.btn-color').forEach(btn => {
+document.querySelectorAll('[data-color]').forEach(btn => {
   btn.addEventListener('click', () =>
     removeColorFromBackground(activeLayer, btn.dataset.color));
 });
