@@ -541,6 +541,38 @@ select:focus { border-color: var(--accent); }
 .btn-color:hover  { border-color: #fff; transform: scale(1.05); }
 .btn-color:active { transform: scale(0.97); }
 
+/* Background removal buttons */
+.bg-removal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 44px;
+  min-height: 50px;
+  padding: 12px 10px;
+  background: linear-gradient(135deg, #d13438, #ff4444);
+  border: 2px solid #d13438;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.72em;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background var(--trans-fast), border-color var(--trans-fast), transform var(--trans-fast);
+  white-space: nowrap;
+}
+.bg-removal-btn:hover  { background: linear-gradient(135deg, #b92c30, #e03333); border-color: #b92c30; transform: scale(1.03); }
+.bg-removal-btn:active { transform: scale(0.97); }
+.bg-removal-btn .btn-icon-emoji { font-size: 1.3em; line-height: 1; }
+
+.bg-removal-btn.btn-restore {
+  background: linear-gradient(135deg, var(--success), #1cd40e);
+  border-color: var(--success);
+}
+.bg-removal-btn.btn-restore:hover { background: linear-gradient(135deg, #12a80a, #1cd40e); border-color: #12a80a; }
+
 /* ============================================================
    RESIZE HANDLE
    ============================================================ */
