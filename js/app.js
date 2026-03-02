@@ -1455,6 +1455,77 @@ document.getElementById('uiScaleSlider').addEventListener('input', function() {
 });
 
 /* ============================================================
+   PINCH-TO-ZOOM FOR UI/SIDEBAR
+   ============================================================ */
+
+let uiPinchStartDist = 0;
+let uiPinchStartScale = 1;
+let uiPinchHintTime = 0;
+let uiPinchLastHintScale = 1;
+
+const sidebarElement = document.getElementById('sidebar');
+
+if (sidebarElement) {
+  sidebarElement.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      uiPinchStartDist = Math.hypot(dx, dy);
+      uiPinchStartScale = uiScale;
+      uiPinchLastHintScale = uiScale;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  sidebarElement.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+
+      if (uiPinchStartDist > 0) {
+        const scaleFactor = dist / uiPinchStartDist;
+        let newScale = uiPinchStartScale * scaleFactor;
+
+        // Clamp between 0.5 and 2.0
+        newScale = clamp(newScale, 0.5, 2.0);
+
+        uiScale = newScale;
+        document.documentElement.style.setProperty('--ui-scale', uiScale);
+
+        // Update slider and label
+        const slider = document.getElementById('uiScaleSlider');
+        const label = document.getElementById('uiScaleVal');
+        const percentage = Math.round(newScale * 100);
+        if (slider) slider.value = percentage;
+        if (label) label.textContent = percentage + '%';
+
+        // Save to localStorage
+        try {
+          localStorage.setItem('pme_uiScale', uiScale);
+        } catch(_) {}
+
+        // Show brief toast with current scale (throttled to once per 300 ms)
+        const now = Date.now();
+        if (Math.abs(newScale - uiPinchLastHintScale) > 0.1 && now - uiPinchHintTime > 300) {
+          uiPinchHintTime = now;
+          uiPinchLastHintScale = newScale;
+          showHint(`UI Scale: ${percentage}%`);
+        }
+      }
+
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  sidebarElement.addEventListener('touchend', e => {
+    if (e.touches.length < 2) {
+      uiPinchStartDist = 0;
+    }
+  }, { passive: true });
+}
+
+/* ============================================================
    HINT TOAST
    ============================================================ */
 
